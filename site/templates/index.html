@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Manager & System Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #2a2a2a;
+            border-color: #00ffff;
+        }
+
+        .tab.active {
+            background: #2a2a2a;
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        .tab-content {
+            display: none;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* System Monitor Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #0d0d0d;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+
+        .stat-card h3 {
+            color: #00ffff;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            background: #333;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            transition: width 0.5s ease;
+        }
+
+        /* File Manager Styles */
+        .file-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #3a3a3a;
+            border-color: #00ffff;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ffff, #0088cc);
+            border: none;
+            color: #000;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff0044, #cc0033);
+            border: none;
+            color: #fff;
+        }
+
+        .file-browser {
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            background: #1a1a1a;
+        }
+
+        .file-item.selected {
+            background: #2a2a2a;
+            border-left: 3px solid #00ffff;
+        }
+
+        .file-icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .folder-icon {
+            color: #ffcc00;
+        }
+
+        .python-icon {
+            color: #3776ab;
+        }
+
+        /* Proxy Browser */
+        .proxy-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 10px;
+            background: #0d0d0d;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        .proxy-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: #fff;
+        }
+
+        /* Network Info */
+        .ip-list {
+            background: #0d0d0d;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .ip-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #1a1a1a;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ip-type {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        /* Process List */
+        .process-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .process-table th {
+            background: #0d0d0d;
+            padding: 10px;
+            text-align: left;
+            color: #00ffff;
+        }
+
+        .process-table td {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background: #1a1a1a;
+            margin: 50px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 10px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 2em;
+            cursor: pointer;
+            color: #ff0044;
+        }
+
+        .code-viewer {
+            background: #0d0d0d;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0d0d0d;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>System Control Panel</h1>
+            <p>Полный контроль над системой и файлами</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('system')">Система</div>
+            <div class="tab" onclick="showTab('files')">Файлы</div>
+            <div class="tab" onclick="showTab('network')">Сеть</div>
+            <div class="tab" onclick="showTab('proxy')">Прокси</div>
+            <div class="tab" onclick="showTab('execute')">Выполнение</div>
+        </div>
+
+        <!-- System Monitor Tab -->
+        <div id="system-tab" class="tab-content active">
+            <h2>Мониторинг системы</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>CPU</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpu-progress" style="width: 0%"></div>
+                    </div>
+                    <p id="cpu-info">Загрузка: 0%</p>
+                    <p id="cpu-details"></p>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Память</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="memory-progress" style="width: 0%"></div>
+                    </div>
+                    <p id="memory-info">Использовано: 0 GB / 0 GB</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Диск</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="disk-progress" style="width: 0%"></div>
+                    </div>
+                    <p id="disk-info">Использовано: 0 GB / 0 GB</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Сеть</h3>
+                    <p id="network-sent">Отправлено: 0 MB</p>
+                    <p id="network-recv">Получено: 0 MB</p>
+                </div>
+            </div>
+
+            <h3>Топ процессов</h3>
+            <table class="process-table">
+                <thead>
+                    <tr>
+                        <th>PID</th>
+                        <th>Имя</th>
+                        <th>CPU %</th>
+                        <th>RAM %</th>
+                    </tr>
+                </thead>
+                <tbody id="process-list">
+                    <tr><td colspan="4">Загрузка...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- File Manager Tab -->
+        <div id="files-tab" class="tab-content">
+            <h2>Файловый менеджер</h2>
+            <div class="file-controls">
+                <button class="btn btn-primary" onclick="uploadFile()">Загрузить файл</button>
+                <button class="btn" onclick="createFolder()">Создать папку</button>
+                <button class="btn btn-danger" onclick="deleteSelected()">Удалить</button>
+                <button class="btn" onclick="refreshFiles()">Обновить</button>
+            </div>
+            
+            <p id="current-path">Путь: /</p>
+            <div class="file-browser" id="file-browser">
+                <div class="loading">Загрузка файлов...</div>
+            </div>
+
+            <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(event)">
+        </div>
+
+        <!-- Network Tab -->
+        <div id="network-tab" class="tab-content">
+            <h2>Сетевая информация</h2>
+            <div class="ip-list" id="ip-list">
+                <div class="loading">Загрузка IP адресов...</div>
+            </div>
+        </div>
+
+        <!-- Proxy Tab -->
+        <div id="proxy-tab" class="tab-content">
+            <h2>Веб-прокси</h2>
+            <div class="proxy-controls">
+                <input type="text" class="url-input" id="proxy-url" placeholder="Введите URL (например: google.com, yandex.ru)" value="">
+                <button class="btn btn-primary" onclick="loadProxyUrl()">Загрузить</button>
+                <button class="btn" onclick="clearProxy()">Очистить</button>
+            </div>
+            <div id="proxy-status" style="margin: 10px 0; color: #00ffff;"></div>
+            <iframe class="proxy-frame" id="proxy-frame" src="about:blank" style="background: white;"></iframe>
+        </div>
+
+        <!-- Execute Tab -->
+        <div id="execute-tab" class="tab-content">
+            <h2>Выполнение Python скриптов</h2>
+            <p>Выберите Python файл в файловом менеджере и нажмите "Выполнить"</p>
+            <div id="execute-output" class="code-viewer" style="margin-top: 20px; display: none;">
+                <h3>Результат выполнения:</h3>
+                <pre id="execute-result"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Viewer Modal -->
+    <div id="file-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Просмотр файла</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentPath = '.';
+        let selectedFile = null;
+        let systemUpdateInterval;
+
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (tabName === 'system') {
+                startSystemMonitoring();
+            } else {
+                stopSystemMonitoring();
+            }
+
+            if (tabName === 'files') {
+                loadFiles(currentPath);
+            } else if (tabName === 'network') {
+                loadNetworkInfo();
+            }
+        }
+
+        // System monitoring
+        function startSystemMonitoring() {
+            updateSystemInfo();
+            systemUpdateInterval = setInterval(updateSystemInfo, 2000);
+        }
+
+        function stopSystemMonitoring() {
+            if (systemUpdateInterval) {
+                clearInterval(systemUpdateInterval);
+            }
+        }
+
+        async function updateSystemInfo() {
+            try {
+                const response = await fetch('/api/system-info');
+                const data = await response.json();
+
+                // CPU
+                document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
+                document.getElementById('cpu-info').textContent = `Загрузка: ${data.cpu.percent.toFixed(1)}%`;
+                document.getElementById('cpu-details').textContent = 
+                    `Ядер: ${data.cpu.count}, Частота: ${data.cpu.frequency.current.toFixed(0)} MHz`;
+
+                // Memory
+                const memUsedGB = (data.memory.used / 1024 / 1024 / 1024).toFixed(1);
+                const memTotalGB = (data.memory.total / 1024 / 1024 / 1024).toFixed(1);
+                document.getElementById('memory-progress').style.width = data.memory.percent + '%';
+                document.getElementById('memory-info').textContent = 
+                    `Использовано: ${memUsedGB} GB / ${memTotalGB} GB`;
+
+                // Disk
+                const diskUsedGB = (data.disk.used / 1024 / 1024 / 1024).toFixed(1);
+                const diskTotalGB = (data.disk.total / 1024 / 1024 / 1024).toFixed(1);
+                document.getElementById('disk-progress').style.width = data.disk.percent + '%';
+                document.getElementById('disk-info').textContent = 
+                    `Использовано: ${diskUsedGB} GB / ${diskTotalGB} GB`;
+
+                // Network
+                const sentMB = (data.network.bytes_sent / 1024 / 1024).toFixed(1);
+                const recvMB = (data.network.bytes_recv / 1024 / 1024).toFixed(1);
+                document.getElementById('network-sent').textContent = `Отправлено: ${sentMB} MB`;
+                document.getElementById('network-recv').textContent = `Получено: ${recvMB} MB`;
+
+                // Processes
+                const processList = document.getElementById('process-list');
+                processList.innerHTML = data.processes.map(proc => `
+                    <tr>
+                        <td>${proc.pid}</td>
+                        <td>${proc.name}</td>
+                        <td>${proc.cpu_percent.toFixed(1)}%</td>
+                        <td>${proc.memory_percent.toFixed(1)}%</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error updating system info:', error);
+            }
+        }
+
+        // File manager
+        async function loadFiles(path) {
+            try {
+                const response = await fetch(`/api/files?path=${encodeURIComponent(path)}`);
+                const data = await response.json();
+                
+                currentPath = data.current_path;
+                document.getElementById('current-path').textContent = `Путь: ${currentPath}`;
+                
+                const browser = document.getElementById('file-browser');
+                let html = '';
+                
+                if (path !== '.') {
+                    html += `
+                        <div class="file-item" onclick="navigateToFolder('${data.parent_path}')">
+                            <span class="file-icon folder-icon">📁</span>
+                            <span>..</span>
+                        </div>
+                    `;
+                }
+                
+                data.items.forEach(item => {
+                    const icon = item.is_dir ? '📁' : 
+                                item.name.endsWith('.py') ? '🐍' : '📄';
+                    const iconClass = item.is_dir ? 'folder-icon' : 
+                                     item.name.endsWith('.py') ? 'python-icon' : '';
+                    
+                    html += `
+                        <div class="file-item" onclick="selectFile('${item.path}', ${item.is_dir}, '${item.name}')">
+                            <span class="file-icon ${iconClass}">${icon}</span>
+                            <span style="flex: 1">${item.name}</span>
+                            <span style="font-size: 0.8em; color: #666">
+                                ${item.is_dir ? '' : formatFileSize(item.size)}
+                            </span>
+                        </div>
+                    `;
+                });
+                
+                browser.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+            return (bytes / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+        }
+
+        function selectFile(path, isDir, name) {
+            if (isDir) {
+                navigateToFolder(path);
+            } else {
+                // Выделяем файл
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                event.currentTarget.classList.add('selected');
+                selectedFile = { path, name };
+                
+                // Если это Python файл, показываем кнопку выполнения
+                if (name.endsWith('.py')) {
+                    showExecuteButton(path);
+                } else {
+                    // Просмотр файла
+                    viewFile(path, name);
+                }
+            }
+        }
+
+        function navigateToFolder(path) {
+            loadFiles(path);
+        }
+
+        async function viewFile(path, name) {
+            try {
+                const response = await fetch(`/api/file-content/${encodeURIComponent(path)}`);
+                const data = await response.json();
+                
+                const modal = document.getElementById('file-modal');
+                const modalTitle = document.getElementById('modal-title');
+                const modalBody = document.getElementById('modal-body');
+                
+                modalTitle.textContent = `Просмотр: ${name}`;
+                
+                if (data.type === 'text') {
+                    modalBody.innerHTML = `<pre class="code-viewer">${escapeHtml(data.content)}</pre>`;
+                } else if (data.type === 'image') {
+                    modalBody.innerHTML = `<img src="${data.url}" style="max-width: 100%;">`;
+                } else {
+                    modalBody.innerHTML = `<p>Бинарный файл (${formatFileSize(data.size)})</p>`;
+                }
+                
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Error viewing file:', error);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showExecuteButton(path) {
+            const executeTab = document.getElementById('execute-tab');
+            executeTab.innerHTML = `
+                <h2>Выполнение Python скрипта</h2>
+                <p>Файл: ${path}</p>
+                <button class="btn btn-primary" onclick="executePython('${path}')">Выполнить скрипт</button>
+                <div id="execute-output" class="code-viewer" style="margin-top: 20px; display: none;">
+                    <h3>Результат выполнения:</h3>
+                    <pre id="execute-result"></pre>
+                </div>
+            `;
+        }
+
+        async function executePython(path) {
+            const output = document.getElementById('execute-output');
+            const result = document.getElementById('execute-result');
+            
+            output.style.display = 'block';
+            result.textContent = 'Выполнение...';
+            
+            try {
+                const response = await fetch('/api/execute-python', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <strong>Код возврата:</strong> ${data.returncode}<br>
+                        <strong>Вывод:</strong><br>${escapeHtml(data.stdout || 'Нет вывода')}<br>
+                        <strong>Ошибки:</strong><br>${escapeHtml(data.stderr || 'Нет ошибок')}
+                    `;
+                } else {
+                    result.textContent = `Ошибка: ${data.error}`;
+                }
+            } catch (error) {
+                result.textContent = `Ошибка выполнения: ${error}`;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('file-modal').style.display = 'none';
+        }
+
+        function uploadFile() {
+            document.getElementById('file-input').click();
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('path', currentPath);
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadFiles(currentPath);
+                } else {
+                    alert('Ошибка загрузки: ' + data.error);
+                }
+            } catch (error) {
+                alert('Ошибка загрузки: ' + error);
+            }
+        }
+
+        async function createFolder() {
+            const name = prompt('Введите имя папки:');
+            if (!name) return;
+            
+            try {
+                const response = await fetch('/api/create-folder', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: currentPath, name })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadFiles(currentPath);
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error);
+            }
+        }
+
+        async function deleteSelected() {
+            if (!selectedFile) {
+                alert('Выберите файл для удаления');
+                return;
+            }
+            
+            if (!confirm(`Удалить ${selectedFile.name}?`)) return;
+            
+            try {
+                const response = await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: selectedFile.path })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    selectedFile = null;
+                    loadFiles(currentPath);
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error);
+            }
+        }
+
+        function refreshFiles() {
+            loadFiles(currentPath);
+        }
+
+        // Network info
+        async function loadNetworkInfo() {
+            try {
+                const response = await fetch('/api/network-info');
+                const data = await response.json();
+                
+                const ipList = document.getElementById('ip-list');
+                ipList.innerHTML = '<h3>Все IP адреса системы:</h3>';
+                
+                data.ips.forEach(ip => {
+                    ipList.innerHTML += `
+                        <div class="ip-item">
+                            <div>
+                                <span class="ip-type">${ip.type.toUpperCase()}</span>
+                                ${ip.interface ? `(${ip.interface})` : ''}
+                                ${ip.hostname ? `- ${ip.hostname}` : ''}
+                            </div>
+                            <div>
+                                <strong>${ip.ip}</strong>
+                                ${ip.netmask && ip.netmask !== 'N/A' ? ` / ${ip.netmask}` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading network info:', error);
+            }
+        }
+
+        // Proxy
+        function loadProxyUrl() {
+            const url = document.getElementById('proxy-url').value.trim();
+            if (!url) {
+                alert('Введите URL для загрузки');
+                return;
+            }
+            
+            const status = document.getElementById('proxy-status');
+            const frame = document.getElementById('proxy-frame');
+            
+            status.textContent = `Загрузка ${url}...`;
+            status.style.color = '#00ffff';
+            
+            try {
+                frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
+                
+                // Обновляем статус через секунду
+                setTimeout(() => {
+                    status.textContent = `✅ Загружено: ${url}`;
+                    status.style.color = '#00ff00';
+                }, 1000);
+                
+            } catch (error) {
+                status.textContent = `❌ Ошибка загрузки: ${error}`;
+                status.style.color = '#ff4444';
+            }
+        }
+
+        function clearProxy() {
+            const frame = document.getElementById('proxy-frame');
+            const status = document.getElementById('proxy-status');
+            
+            frame.src = 'about:blank';
+            status.textContent = '';
+            document.getElementById('proxy-url').value = '';
+        }
+
+        // Добавляем поддержку Enter в поле URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('proxy-url');
+            if (urlInput) {
+                urlInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        loadProxyUrl();
+                    }
+                });
+            }
+        });
+
+        // Initialize
+        window.onload = function() {
+            startSystemMonitoring();
+        };
+
+        // Close modal on click outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('file-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html> 
